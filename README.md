@@ -314,7 +314,7 @@ Key 不对、过期或没有该模型权限。重新在 AI 工具页粘贴 Key�
 .\release\uninstall.ps1 -QingfengRoot "C:\Program Files\WindInput"
 ```
 
-脚本会寻找最近的 `.bak-ai-*` 备份并恢复；然后启动服务。
+脚本会寻找最近的 `.bak-ai-*` 备份并恢复；如果目标服务原本在运行，会重新启动。
 
 ### 手动恢复
 
