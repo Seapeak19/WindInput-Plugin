@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.127.0-ai.2 — 2026-11-05
+
+### 安装方式
+
+- 新增 **QingfengAI-Setup.exe**：双击、自动检测目录、UAC 后一键覆盖。
+- 新增 **agent-install.ps1**：供能执行命令的 Agent 非交互安装。
+- 新增 [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md)：说明 Agent 安装的前提、检查、验证和限制。
+- 保留原有 `install.ps1` / `uninstall.ps1` 作为高级/手动方式。
+- 安装程序支持检测官方 0.127.0、备份、恢复和版本警告。
+
+### 说明
+
+- Agent 安装不能代替用户点击 UAC。
+- 仍需先安装官方清风输入法 0.127.0；本仓库不包含 TSF DLL 和词库。
+
 ## 0.127.0-ai.1 — 2026-11-05
 
 首个整合版。

@@ -82,7 +82,28 @@
 
 ---
 
-## 快速安装（推荐）
+## 最简单的安装方式（推荐）
+
+先安装官方清风输入法 **0.127.0**，然后：
+
+1. 下载/克隆本仓库；
+2. 双击：
+
+```text
+release\QingfengAI-Setup.exe
+```
+
+3. Windows 弹出 UAC 时点“是”；
+4. 安装程序会自动找到清风输入法目录，点“安装插件”；
+5. 安装完成后，打开 **设置 → AI 工具** 填写 API Key。
+
+安装程序只替换 `wind_input.exe` / `wind_setting.exe`，会自动备份旧文件，不动 `wind_tsf.dll`、词库和用户配置。没有基础安装时，它会提示并打开官方下载页。
+
+> 这是刚编译的本地安装程序，没有代码签名；SmartScreen 可能提示“未知发布者”，选择“更多信息 → 仍要运行”即可。
+
+---
+
+## 脚本安装
 
 ### 1. 安装官方清风输入法 0.127.0
 
@@ -142,6 +163,57 @@ Key 会用当前 Windows 用户的 DPAPI 加密，保存到用户数据目录的
 4. **左键按住可拖动**，**右键直接关闭**。
 
 > 如果你之前改过快捷键，以设置页显示的为准。默认值是 `Ctrl+Alt+T` / `Ctrl+Alt+S`。
+
+---
+
+## 交给能执行命令的 Agent 安装
+
+**可以，但有前提**：这是 Windows 本机安装，Agent 必须能执行 shell，并且满足下面任意一条：
+
+- 有管理员权限（可写 `Program Files`）；或
+- 清风输入法装在当前用户可写目录（`WRITABLE=True`）。
+
+如果两者都不满足，Agent 会停在 UAC/权限这一步，需要用户手动批准。**Agent 不能代替用户点 UAC**。
+
+### 检查
+
+```powershell
+git clone https://github.com/Seapeak19/WindInput-Plugin.git
+cd WindInput-Plugin
+powershell -ExecutionPolicy Bypass -File release\agent-install.ps1 -Check
+```
+
+输出示例：
+
+```text
+QINGFENG_ROOT=C:\Program Files\WindInput
+ADMIN=True
+WRITABLE=False
+```
+
+- `ADMIN=True`：Agent 可以直接安装；
+- `WRITABLE=True`：即使不是管理员，也可以试；
+- 两者都是 `False`：停止，请用户用管理员权限运行，或使用 `QingfengAI-Setup.exe`。
+
+### 安装
+
+```powershell
+powershell -ExecutionPolicy Bypass -File release\agent-install.ps1
+```
+
+自动检测不到目录时：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File release\agent-install.ps1 -QingfengRoot "D:\Apps\WindInput"
+```
+
+脚本会备份、覆盖、尝试正常启动服务，并输出 `OK`、安装目录和备份后缀。
+
+### 给 Agent 的提示词
+
+完整的可复制提示词、限制和校验步骤在 [docs/AGENT_INSTALL.md](docs/AGENT_INSTALL.md)。
+
+> 不要把 `Invoke-Expression` / `irm ... | iex` 当成一键安装：这会把远程脚本直接执行，无法校验内容。正确做法是 clone 仓库、检查脚本，再运行。
 
 ---
 
@@ -335,13 +407,20 @@ qingfeng-ai-plugin/
 ├─ NOTICE.md                   # 上游项目与许可证说明
 ├─ docs/
 │  ├─ INSTALL.md               # 更详细的安装/升级/排错
+│  ├─ AGENT_INSTALL.md         # 交给 Agent 安装
 │  └─ BUILD.md                 # 从源码构建
 ├─ assets/logo.png
+├─ installer/
+│  ├─ Setup.cs                 # 图形安装程序源码
+│  ├─ Setup.manifest
+│  └─ build-setup.ps1
 ├─ release/
+│  ├─ QingfengAI-Setup.exe     # 双击安装
 │  ├─ wind_input.exe
 │  ├─ wind_setting.exe
 │  ├─ install.ps1
 │  ├─ uninstall.ps1
+│  ├─ agent-install.ps1
 │  └─ SHA256SUMS.txt
 ├─ scripts/build.ps1
 └─ src/
@@ -354,7 +433,7 @@ qingfeng-ai-plugin/
 
 ## 版本与兼容性
 
-- 插件版本：`0.127.0-ai.1`
+- 插件版本：`0.127.0-ai.2`
 - 基础版本：清风输入法 `0.127.0`
 - 平台：Windows 10/11 x64
 - 源码基线：
@@ -377,3 +456,4 @@ qingfeng-ai-plugin/
 因此本整合仓库按 **GPL-3.0** 分发。各组件的原始许可证文件保留在 `src/` 对应目录中；详见 [NOTICE.md](NOTICE.md)。
 
 本项目与清风输入法官方无隶属关系；请遵守上游项目的品牌和许可证要求。
+

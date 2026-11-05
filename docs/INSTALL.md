@@ -42,7 +42,17 @@
 
 ## 2. 选择安装方式
 
-### A. 脚本安装（推荐）
+### A. 双击安装程序（最简单）
+
+1. 先安装官方清风输入法 0.127.0；
+2. 双击 `release\QingfengAI-Setup.exe`；
+3. UAC 选“是”；
+4. 确认自动检测到的目录，点 **安装插件**；
+5. 安装完成后打开设置 → AI 工具填写 Key。
+
+安装程序会备份旧 exe、自动检测目录、只替换两个程序文件。没有基础安装时会提示并打开官方下载页。
+
+### B. 脚本安装
 
 1. 退出清风输入法（托盘退出，或结束 `wind_input` / `wind_setting` 进程）。
 2. 在仓库 `release` 目录打开 PowerShell。
@@ -68,7 +78,7 @@
 - 覆盖两个 exe；
 - 重新启动服务。
 
-### B. 手动覆盖
+### C. 手动覆盖
 
 1. 退出清风输入法；
 2. 备份安装目录里的 `wind_input.exe`、`wind_setting.exe`；
@@ -77,9 +87,15 @@
 
 只替换 `wind_input.exe` 时，翻译/润色可能能用，但设置页缺少 AI 工具和 Key 输入，**不建议**。
 
-### C. 从源码构建后安装
+### D. 从源码构建后安装
 
-见 [BUILD.md](BUILD.md)。构建产物同样只有两个 exe，安装方式与 A/B 相同。
+见 [BUILD.md](BUILD.md)。构建产物同样只有两个 exe，安装方式与 A/B/C 相同。
+
+### E. 交给 Agent
+
+如果使用能执行 Windows 命令的 Agent，见 [AGENT_INSTALL.md](AGENT_INSTALL.md)。
+
+前提是清风输入法已安装，且 Agent 有管理员权限或目录可写；UAC 不能由 Agent 代替点击。
 
 ---
 
