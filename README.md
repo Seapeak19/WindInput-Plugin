@@ -15,8 +15,25 @@
   <img src="https://img.shields.io/badge/AI-OpenAI%20compatible-8b5cf6" alt="OpenAI compatible">
 </p>
 
-> 这是一个**非官方扩展**，基于 [清风输入法 WindInput](https://github.com/huanfeng/WindInput) 0.127.0 的源码集成。
+> 这是一个**非官方扩展**，基于清风输入法 0.127.0 的源码集成。
 > 它不是外挂式划词工具，而是把 AI 能力直接做进输入法服务和设置程序。
+
+---
+
+## 原仓库与来源
+
+本插件不是从零实现的输入法，它直接基于以下开源项目：
+
+| 项目 | 原仓库 | 许可证 |
+|---|---|---|
+| **清风输入法 WindInput**（主项目） | <https://github.com/huanfeng/WindInput> | GPL-3.0 |
+| 清风输入法设置程序 | <https://github.com/huanfeng/wind-setting> | GPL-3.0 |
+| windui 设置 GUI 库 | <https://github.com/huanfeng/wind-ui-rust> | MIT OR Apache-2.0 |
+
+- 本仓库是**第三方插件/整合分支**，不是清风输入法官方仓库。
+- 官方下载与文档：<https://windinput.com>
+- 本仓库基于 **WindInput 0.127.0**；core 基线提交 `1771e80`，settings 基线 `529d71e`，windui 基线 `d9792f0`。
+- 上游的许可证文件均保留在 `src/` 对应目录；本仓库整体按 GPL-3.0 分发。
 
 ---
 
