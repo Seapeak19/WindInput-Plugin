@@ -1,0 +1,154 @@
+name: CI
+
+# push/PR 门禁:全程 ubuntu-latest 交叉编译校验(无需 Windows runner)。
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # 统一 MSVC 工具链:clang-19(C++ TSF 需 clang≥19)+ lld-19 + llvm-19;
+      # cargo-xwin 交叉编 Rust、clang 交叉编 C++ TSF,均经 MSVC SDK(无需 mingw)。
+      - name: 安装 clang-19/lld-19/llvm-19
+        run: sudo apt-get update && sudo apt-get install -y clang-19 lld-19 llvm-19
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc, aarch64-linux-android
+          components: rustfmt, clippy
+
+      - name: 安装 cargo-xwin
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-xwin
+
+      # 缓存 MSVC CRT/Windows SDK(xwin 首次下载约数百 MB)
+      - name: 缓存 xwin SDK
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/cargo-xwin
+          key: xwin-${{ runner.os }}-v1
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wind_input
+
+      # fmt --check + clippy(msvc target) + test(本机)
+      - name: dev.sh ci
+        run: ./scripts/dev.sh ci
+
+      # headless/Android 防走样三道闸:
+      # ① check 对象是 **wind-mobile 全包**(移动端门面,闭包含 coordinator headless):
+      #    同时锁三件事——headless 可编译、依赖闭包过 Android、wind-ui-types 没长出
+      #    无条件平台依赖。此前只 check coordinator,主线改动破坏门面要等安卓仓 build 才炸。
+      #
+      #    ⚠ 曾经 check 的是 wind-android 全包,还多锁一件「FFI 层自身(uniffi 宏/cdylib/
+      #    tracing-android 的 cfg 分支)在 Android target 可编」。绑定层搬去 WindInputAndroid
+      #    仓后这一件**本仓锁不住了**,由该仓 scripts/build-rust.ps1 交叉编译真 .so 时把关
+      #    (比 check 更强,但反馈晚一个仓)。改动 wind-mobile 的公开面时请顺手跑一次安卓仓构建。
+      # ② tree-grep 断言依赖边本身——wind-ui 的平台代码全在 cfg 内,理论上可能在 android
+      #    下编成空壳而不报错,①抓不到"coordinator 又直连 wind-ui"的回归,须对边断言。
+      # ③ C 依赖卫兵:webdata(wind-transfer→zip→zstd-sys/bzip2-sys、fontdb)独立成
+      #    wind-webdata 后,Android 闭包为纯 Rust——check 因此**不再需要 NDK**,本机也可跑。
+      #    刻意不配 NDK 环境变量:谁把 -sys crate 混回闭包,这一步会当场编不过而暴露。
+      - name: wind-mobile headless (aarch64-linux-android)
+        working-directory: wind_input
+        run: cargo check -p wind-mobile --target aarch64-linux-android
+
+      - name: android 依赖树无 wind-ui / 无 C 依赖
+        working-directory: wind_input
+        run: |
+          ! cargo tree -p wind-coordinator --no-default-features -e normal | grep -q "wind-ui v"
+          ! cargo tree -p wind-mobile --target aarch64-linux-android -e normal | grep -qE "zstd-sys|bzip2-sys|fontdb"
+
+      # wind_tsf 里被刻意剥出来的纯逻辑（判据/表结构，不含 Win32 头）——g++ 就能跑，
+      # 约 10 秒。⚠ 上面那步交叉编译只保证 DLL 能编出来，**一条断言都不会执行**；
+      # 这些测试此前只有手敲 g++ 才跑得到，等于不存在。在「游戏兼容这类改动无法在
+      # CI 里真机验」的前提下，它们是唯一会自动执行的判据闸门，故单列一步。
+      # 按通配取全部 *_test.cpp：手写清单曾漏掉一半（新测试只登记了 CMake），等于没跑。
+      - name: wind_tsf 纯逻辑单测
+        run: |
+          set -e
+          for f in wind_tsf/tests/*_test.cpp; do
+            t="$(basename "$f" .cpp)"
+            g++ -std=c++17 -Wall -Wextra -Iwind_tsf/include -o "/tmp/$t" "$f"
+            "/tmp/$t"
+          done
+
+      - name: 交叉编译 TSF DLL (x64 + x86)
+        run: |
+          V="$(tr -d '[:space:]' < docs/VERSION)"
+          make -C wind_tsf VERSION="$V"
+          make -C wind_tsf x86 VERSION="$V"
+
+  # 门控: 仅当 macOS 相关路径改动时才触发 macOS 编译校验。
+  # GitHub 不支持 per-job paths, 故用一个 ubuntu 廉价 job 输出是否命中, macos-check 据此 if 短路。
+  changes:
+    name: Detect macOS-related changes
+    runs-on: ubuntu-latest
+    outputs:
+      macos: ${{ steps.filter.outputs.macos }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            macos:
+              - 'wind_macos/**'
+              - 'wind_input/**'
+              - 'scripts/mac/**'
+
+  # macOS 门禁: Swift 与 Rust 双侧编译 + 单测, 不打包 .app(打包见 release.yml)。
+  #
+  # 为什么这里必须真跑测试和 clippy, 而不是像原来那样只 build/check:
+  # 上面的 check job 全程针对 x86_64-pc-windows-msvc, 一切 #[cfg(target_os = "macos")]
+  # 的代码对它都不存在 —— 而 macOS 侧的定位/截图/主题/热键都是大段 cfg 独有实现。
+  # 只 cargo check 也不够: check 不做单态化与代码生成, 测试更是完全不跑。
+  macos-check:
+    name: macOS Build & Test
+    needs: changes
+    if: needs.changes.outputs.macos == 'true'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wind_input
+
+      - name: Build wind_macos (Swift IMKit)
+        working-directory: wind_macos
+        run: swift build
+
+      - name: Test wind_macos (Swift)
+        working-directory: wind_macos
+        run: swift test
+
+      # 与 Linux job 的 dev.sh ci 同一门禁口径：--all-targets 覆盖测试代码，-D warnings 挂新警告。
+      # darwin 与 windows 走的 cfg 分支不同，本条是 macOS-only 代码的唯一 lint 关卡。
+      # --keep-going 与下一步的 --no-fail-fast 同理由：两者默认都是首错即停，一轮只报得出
+      # 一个问题，于是「推一次修一个」。macOS 是 darwin 侧代码的唯一关卡（上面的 check job
+      # 全程跑 windows target），没有第二条路能提前发现剩下的，这里尤其需要一次看全。
+      - name: Clippy wind_input (darwin)
+        working-directory: wind_input
+        run: cargo clippy --keep-going --workspace --all-targets -- -D warnings
+
+      - name: Test wind_input (Rust core, darwin)
+        working-directory: wind_input
+        run: cargo test --workspace --no-fail-fast

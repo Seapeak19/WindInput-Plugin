@@ -1,0 +1,24 @@
+[package]
+name = "wind-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "OpenAI-compatible selection translation and polishing for WindInput"
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ureq = { version = "2", features = ["json"] }
+wind-config = { path = "../wind-config" }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security_Cryptography",
+    "Win32_System_Memory",
+] }
+
+[lints]
+workspace = true

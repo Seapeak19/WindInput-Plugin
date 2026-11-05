@@ -1,0 +1,18 @@
+## 下载
+
+| 版本 | 适用场景 |
+| --- | --- |
+| Windows 安装版 `.exe` | **推荐**。向导式安装、自动配置输入法 |
+| Windows 便携版 `.zip` | 免安装，解压即用，适合放 U 盘或绿色使用 |
+| macOS 安装包 `.pkg` | 通用二进制，Apple 芯片与 Intel 机型通用 |
+| Linux 安装包 `.deb`（测试版） | Ubuntu 22.04+ / Debian 系（含 Deepin）的 Fcitx5 输入法；`linux-amd64`（Intel/AMD）与 `linux-arm64`（ARM）各一个 |
+
+每个安装包都附带同名 `.sha256` 校验文件，可用于核对下载完整性。
+
+> 🌏 **国内网络**建议从 **[官网下载页](https://windinput.com/download)** 经 CDN 获取同一版本，速度更稳。
+>
+> ⚠️ **Windows**：安装时若 Windows 安全中心（SmartScreen）拦截，点「更多信息」→「仍要运行」即可继续。SmartScreen 要看下载量积累起来的信誉，新版本发布初期仍可能被拦。
+>
+> ⚠️ **macOS**：本版本未经 Apple 公证，双击安装包会提示「无法验证开发者」。请改用 **右键 →「打开」→「打开」**，或在终端执行 `sudo installer -pkg <安装包路径> -target /`。装完后到「系统设置 → 键盘 → 文本输入 → 输入法 → 编辑 → +」里添加「清风输入法」。
+>
+> ⚠️ **Linux**：先 `sudo apt install ./<下载的 .deb 文件>`，在 Fcitx5 配置的输入法列表里添加「清风输入法」即可使用，无需额外脚本（系统输入法框架须为 Fcitx5；升级只需 `fcitx5 -rd`）。支持 **X11** 与 **Wayland** 会话（Wayland 需合成器支持 input-method-v2，目前仅在 treeland 上实测；GNOME / KDE 尚未验证）；其它发行版（Fedora / Arch 等）的包尚未提供。

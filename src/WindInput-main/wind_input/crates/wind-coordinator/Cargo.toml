@@ -1,0 +1,75 @@
+[package]
+name = "wind-coordinator"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+wind-utils = { path = "../wind-utils" }
+wind-ipc = { path = "../wind-ipc" }
+wind-bridge = { path = "../wind-bridge" }
+wind-config = { path = "../wind-config" }
+wind-ai = { path = "../wind-ai", optional = true }
+wind-host = { path = "../wind-host" }
+wind-store = { path = "../wind-store" }
+wind-dict = { path = "../wind-dict" }
+# ⚠ 勿加 wind-transfer/fontdb：它们随 webdata 独立进了 wind-webdata（依赖方向
+# webdata → coordinator），是 Android 闭包免 C 依赖（check-android 免 NDK）的关键。
+wind-engine = { path = "../wind-engine" }
+wind-assoc = { path = "../wind-assoc" }
+wind-candidate = { path = "../wind-candidate" }
+wind-transform = { path = "../wind-transform" }
+wind-theme = { path = "../wind-theme" }
+# 表现层协议类型（UiCommand/UiEvent 等）；数据类型一律从这里引，wind-ui 只供
+# 桌面构造路径的运行期能力（UiManager/剪贴板/macOS forwarder），由 desktop-ui
+# feature 门控——`--no-default-features` 即 headless/Android 形态。
+wind-ui-types = { path = "../wind-ui-types" }
+wind-ui = { path = "../wind-ui", optional = true }
+wind-cmdbar = { path = "../wind-cmdbar" }
+wind-phrase = { path = "../wind-phrase" }
+wind-keys = { path = "../wind-keys" }
+wind-quick-input = { path = "../wind-quick-input" }
+wind-softkeyboard = { path = "../wind-softkeyboard" }
+wind-reverse = { path = "../wind-reverse" }
+wind-aux-code = { path = "../wind-aux-code" }
+wind-punct = { path = "../wind-punct" }
+unicode-segmentation = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+chrono = "0.4"
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+
+# 空闲时 malloc_trim（heap_trim.rs）；SIGTERM 先落盘（exit_signal.rs，桌面 unix）
+[target.'cfg(all(unix, not(target_os = "android")))'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+# DirectSwitchHotkeys 注册表同步（direct_switch.rs）
+winreg = "0.52"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# 系统明暗探测（theme_style.rs 读全局偏好 AppleInterfaceStyle）
+core-foundation-sys = "0.8"
+
+[features]
+default = ["desktop-ui"]
+# 桌面渲染路径：UiManager/剪贴板直通/macOS forwarder。关掉即 headless/Android
+# 形态——生产构造器 `new` 不可用，走 `new_headless_with_ui` + 注入 HostServices。
+desktop-ui = ["dep:wind-ui", "dep:wind-ai"]
+# Linux 外部宿主（Fcitx5 addon）形态：见 build.rs 的 `ext_presenter` 别名。默认关。
+linux-host = ["desktop-ui", "wind-ui/linux-host", "wind-bridge/linux-host"]
+
+[dev-dependencies]
+# tests/ 的数据域 RPC 断言经 wind-webdata（dev 环允许）
+wind-webdata = { path = "../wind-webdata" }
+wind-config = { path = "../wind-config" }
+wind-host = { path = "../wind-host" }
+wind-keys = { path = "../wind-keys" }
+wind-ui-types = { path = "../wind-ui-types" }
+wind-bridge = { path = "../wind-bridge" }
+wind-ipc = { path = "../wind-ipc" }
+
+[lints]
+workspace = true
